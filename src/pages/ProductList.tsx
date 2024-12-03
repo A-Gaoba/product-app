@@ -6,14 +6,16 @@ import ConfirmationModal from '../components/ConfirmationModal';
 
 const ProductList = () => {
   const navigate = useNavigate();
-  const { products, fetchProducts, toggleLike, deleteProduct, filterFavorites } = useProductsStore((state) => state);
+  const { products, fetchProducts, toggleLike, deleteProduct, filterFavorites, loadPersistedData } = useProductsStore((state) => state);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<number | null>(null);
 
+  // Load persisted data when the component mounts
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    loadPersistedData(); // Load persisted products from localStorage
+    fetchProducts(); // Fetch from API if needed (optional)
+  }, [fetchProducts, loadPersistedData]);
 
   const handleCardClick = (id: number) => {
     navigate(`/products/${id}`);

@@ -21,34 +21,47 @@ type ProductsState = {
   fetchProducts: () => Promise<void>;
   toggleLike: (id: number) => void;
   deleteProduct: (id: number) => void;
-  filterFavorites: () => void; // This should update the products state directly
-  addProduct: (product: Product) => void;
-  loadPersistedData: () => void; // This should be part of the state, not passed to set
+  filterFavorites: () => void;
+  loadPersistedData: () => void;
 };
 
 export const useProductsStore = create<ProductsState>((set, get) => ({
   products: [],
   favorites: [],
 
-  // Load persisted data from localStorage if available
+  // Load persisted data from localStorage
   loadPersistedData: () => {
     const savedProducts = localStorage.getItem("products");
     const savedFavorites = localStorage.getItem("favorites");
 
     if (savedProducts) {
-      set({ products: JSON.parse(savedProducts) });
+      try {
+        const parsedProducts = JSON.parse(savedProducts);
+        if (Array.isArray(parsedProducts)) {
+          set({ products: parsedProducts });
+        }
+      } catch (error) {
+        console.error("Error parsing products from localStorage:", error);
+      }
     }
 
     if (savedFavorites) {
-      set({ favorites: JSON.parse(savedFavorites) });
+      try {
+        const parsedFavorites = JSON.parse(savedFavorites);
+        if (Array.isArray(parsedFavorites)) {
+          set({ favorites: parsedFavorites });
+        }
+      } catch (error) {
+        console.error("Error parsing favorites from localStorage:", error);
+      }
     }
   },
 
-  // Fetch products from the API and format the data
+  // Fetch products from API
   fetchProducts: async () => {
     try {
       const response = await fetch("https://fakestoreapi.com/products");
-      const data: ApiResponse[] = await response.json(); // Explicitly type the response
+      const data: ApiResponse[] = await response.json();
       const formattedData = data.map((item) => ({
         id: item.id,
         title: item.title,
@@ -57,7 +70,6 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
         liked: false,
       }));
       set({ products: formattedData });
-      // Save fetched products to localStorage
       localStorage.setItem("products", JSON.stringify(formattedData));
     } catch (error) {
       console.error("Failed to fetch products:", error);
@@ -70,9 +82,7 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
       product.id === id ? { ...product, liked: !product.liked } : product
     );
     const favorites = updatedProducts.filter((product) => product.liked);
-
     set({ products: updatedProducts, favorites });
-    // Persist updated products and favorites to localStorage
     localStorage.setItem("products", JSON.stringify(updatedProducts));
     localStorage.setItem("favorites", JSON.stringify(favorites));
   },
@@ -83,27 +93,16 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
       (product) => product.id !== id
     );
     const favorites = updatedProducts.filter((product) => product.liked);
-
     set({ products: updatedProducts, favorites });
-    // Persist updated products and favorites to localStorage
     localStorage.setItem("products", JSON.stringify(updatedProducts));
     localStorage.setItem("favorites", JSON.stringify(favorites));
   },
 
-  // Update the products state to only show favorites
+  // Filter the products to only show favorites
   filterFavorites: () => {
     const favorites = get().favorites;
     set({ products: favorites });
   },
-
-  // Add a new product to the list
-  addProduct: (product: Product) => {
-    const newProducts = [...get().products, product];
-    set({ products: newProducts });
-    // Persist new product list to localStorage
-    localStorage.setItem("products", JSON.stringify(newProducts));
-  },
 }));
 
-// Initialize the store with persisted data on app load
 useProductsStore.getState().loadPersistedData();
